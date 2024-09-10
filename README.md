@@ -12,14 +12,14 @@ recommend installing via opam:
 
 1. Opam is the package manager for [OCaml](https://ocaml.org/) -- the language in which FStar is
    written. FStar programs can be extracted to OCaml. To install opam,
-   follow he instructions [here](https://opam.ocaml.org/doc/Install.html).
+   follow rhe instructions [here](https://opam.ocaml.org/doc/Install.html).
 2. After installing Opam, run `eval $(opam env)` to load opam config in to
    your shell environment. 
 2. To install the latest stable release of FStar, run `opam install fstar`
 3. To install the dev version:
-  1. `git clone git@github.com:FStarLang/FStar.git`
-  2. `cd Fstar`
-  3. `opam pin add fstar .`. This will start installing FStar as an opam
+    1. `git clone git@github.com:FStarLang/FStar.git`
+    2. `cd Fstar`
+    3. `opam pin add fstar .`. This will start installing FStar as an opam
      package. Answer `Y` to questions opam asks.
 4. Re-run `eval $(opam env)`
 5. Check fstar installation using `fstar.exe --version`
