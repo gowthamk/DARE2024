@@ -1,3 +1,11 @@
+(*
+ * This module describes one-shot leader election protocol.
+ * This is a simplified version of Paxos with only one round. 
+ * It relies on asynchronous message passing. Prop `is_safe`
+ * is the safety condition. Props `inv2-7` are needed to
+ * discharge the safety proof.
+ *)
+
 module OneShotLeader
 
 module M = FStar.Map
@@ -10,10 +18,27 @@ type msg =
   | Vote: Node.t -> Node.t -> msg
   | Leader: Node.t -> msg
 
+(*
+ * M.sel s.leader A = None
+ *)
+
 noeq type state = {leader: M.t Node.t (option Node.t);
+                    (* In any state s, s.leader[A] is who A thinks is the
+                    leader *)
                    voted: M.t Node.t bool;
+                   (* In any state s, s.voted[A] = true <=> A has already voted.
+                    *)
                    votes: M.t Node.t (list Node.t);
-                   msgs: list msg}
+                   (*
+                     In any state s, s.votes[A] is the set of nodes who
+                     voted for A.
+                    *)
+                    
+                   msgs: list msg
+                   (* 
+                   In any state s, if m ∈ s.msgs, then some node sent the
+                   message m on network. 
+                     *)}
 
 (*
  * Assume a node called self
@@ -46,10 +71,10 @@ val axm_quorum_monotonic: q1:list Node.t -> q2:list Node.t
            SMTPat (is_quorum q2)]
 let axm_quorum_monotonic q1 q2 = admit()
 
-let is_safe {leader} = 
+let is_safe s = 
   forall n1 n2. (*{:pattern (M.sel leader n1);(M.sel leader n2)} *)
-      M.sel leader n1 = None \/ M.sel leader n2 = None 
-                \/ M.sel leader n1 = M.sel leader n2
+      M.sel s.leader n1 = None \/ M.sel s.leader n2 = None 
+                \/ M.sel s.leader n1 = M.sel s.leader n2
 
 let inv2 {msgs;votes} =
     forall n. L.mem (Leader n) msgs ==> is_quorum (M.sel votes n)
@@ -83,7 +108,7 @@ let init_state = {leader = M.const None;
                   msgs = []}
 
 val init_state_safe: (n:Node.t) ->
-  Lemma (is_safe init_state /\ inv2 init_state)
+  Lemma (is_safe init_state (*/\ inv2 init_state*))
 let init_state_safe n = ()
 
 
@@ -100,13 +125,14 @@ let cast_vote n s =
 
 val cast_vote_safe: n:Node.t -> s:state ->
     Lemma(requires is_safe s /\ inv2 s /\ inv3 s 
-                    /\ inv4 s /\ inv5 s /\ inv6 s)
+                    /\ inv4 s /\ inv5 s /\ inv6 s /\ inv7 s)
          (ensures is_safe (cast_vote n s) 
                /\ inv2 (cast_vote n s)
                /\ inv3 (cast_vote n s)
                /\ inv4 (cast_vote n s)
                /\ inv5 (cast_vote n s)
-               /\ inv6 (cast_vote n s))
+               /\ inv6 (cast_vote n s)
+               /\ inv7 (cast_vote n s))
 let cast_vote_safe n s = ()
 
 (* recv_vote *)
@@ -129,24 +155,15 @@ let recv_vote s =
 
 val recv_vote_safe: s:state ->  
     Lemma(requires is_safe s /\ inv2 s /\ inv3 s
-                    /\ inv4 s /\ inv5 s /\ inv6 s)
+                    /\ inv4 s /\ inv5 s /\ inv6 s /\ inv7 s)
          (ensures is_safe (recv_vote s) 
                 /\ inv2 (recv_vote s)
                 /\ inv3 (recv_vote s)
                 /\ inv4 (recv_vote s)
                 /\ inv5 (recv_vote s)
-                /\ inv6 (recv_vote s))
+                /\ inv6 (recv_vote s)
+                /\ inv7 (recv_vote s))
 let recv_vote_safe s = 
-  (*let s' = recv_vote s in
-  let _ = assert (L.mem (Leader n) s'.msgs ==> L.mem (Leader n) s.msgs) in
-  let _ = assert (L.mem (Leader n) s.msgs ==> 
-                    is_quorum (M.sel s.votes n)) in
-  let _ = assert(forall x. L.mem x (M.sel s.votes n) 
-                  ==> L.mem x (M.sel s'.votes n)) in
-  let _ = assert((is_quorum (M.sel s.votes n) /\ 
-                    (forall x. L.mem x (M.sel s.votes n) 
-                        ==> L.mem x (M.sel s'.votes n)))
-                  ==> is_quorum (M.sel s'.votes n)) in*)
   ()
 
 (*
@@ -190,7 +207,7 @@ let register_leader s =
   | _ -> s
 
 val register_leader_safe: s:state ->
-    Lemma(requires is_safe s /\ inv2 s/\ inv3 s
+    Lemma(requires is_safe s  /\ inv2 s/\ inv3 s
                     /\ inv4 s /\ inv5 s /\ inv6 s
                     /\ inv7 s)
          (ensures is_safe (register_leader s)

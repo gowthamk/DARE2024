@@ -1,3 +1,13 @@
+(*
+ * One-shot leader election protocol written using an 
+ * weakly-consistent replicated state abstraction instead
+ * of explicit message passing. `is_safe` is still the safety
+ * condition, but instead of proving it directly, we prove it
+ * via convergence and monotonicity of leader decision (see vc1-4).
+ * This approach does not require additional inductive invariant,
+ * but it does require an update pre-condition (`update_pre`).
+ *)
+
 module ReplicatedLeader
 
 module M = FStar.Map
@@ -71,7 +81,8 @@ let handle_vote s (Vote n1 n2) =
   (eff,s')
 
 (*
- * is_elected s voters ldr returns true iff ldr has a quorum of votes in s. 
+ * is_elected s voters ldr returns true iff ldr has a 
+ * quorum of votes in s. 
  *)
 val is_elected: state -> Node.t -> bool
 let is_elected s ldr = 
